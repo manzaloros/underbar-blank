@@ -112,18 +112,32 @@
   // Produce a duplicate-free version of the array.
   _.uniq = function(array, isSorted, iterator) {
     let resultArray = [];
-    _.each(array, function(item) {
-      if (!resultArray.includes(item)) {
-        resultArray.push(item);
-      }
-    });
+    if (isSorted) {
+      let iterated = [];
+      _.each(array, function(item) {
+        iterated.push(iterator(item));
 
+      });
+      resultArray.push(array[_.indexOf(iterated, true)], array[_.indexOf(iterated, false)]);
+    } else {
+      _.each(array, function(item) {
+        if (!resultArray.includes(item)) {
+          resultArray.push(item);
+        }
+      });
+    }
     return resultArray;
   };
 
 
+
   // Return the results of applying an iterator to each element.
   _.map = function(collection, iterator) {
+    let resultArray = [];
+    _.each(collection, function(item) {
+      resultArray.push(iterator(item));
+    });
+    return resultArray;
     // map() is a useful primitive iteration function that works a lot
     // like each(), but in addition to running the operation on all
     // the members, it also maintains an array of results.
@@ -168,6 +182,14 @@
   //   }); // should be 5, regardless of the iterator function passed in
   //          No accumulator is given so the first element is used.
   _.reduce = function(collection, iterator, accumulator) {
+    if (arguments[2] === undefined) {
+      accumulator = collection[0];
+      collection = collection.slice(1);
+    }
+    _.each(collection, function(item) {
+      accumulator = iterator(accumulator, item);
+    });
+    return accumulator;
   };
 
   // Determine if the array or object contains a given value (using `===`).
@@ -186,12 +208,27 @@
   // Determine whether all of the elements match a truth test.
   _.every = function(collection, iterator) {
     // TIP: Try re-using reduce() here.
+    if (collection.length === 0) {
+      return true;
+    }
+    if (iterator === undefined) {
+      iterator = _.identity;
+    }
+    return _.reduce(collection, (boolean, current) => {
+      if (iterator(current) && boolean) {
+        return true;
+      }
+      return false;
+    }, true);
   };
 
   // Determine whether any of the elements pass a truth test. If no iterator is
   // provided, provide a default one
   _.some = function(collection, iterator) {
     // TIP: There's a very clever way to re-use every() here.
+    return !_.every(collection, item => {
+      return iterator ? !iterator(item) : !item;
+    });
   };
 
 
@@ -214,11 +251,38 @@
   //     bla: "even more stuff"
   //   }); // obj1 now contains key1, key2, key3 and bla
   _.extend = function(obj) {
+    // Take first argument as object to extend
+    let objToExtend = arguments[0];
+    // Iterate over each object
+    _.each(arguments, obj => {
+      // Iterate over each property in the object
+      for (let key in obj) {
+        // Add the property to the output object
+        objToExtend[key] = obj[key];
+      }
+    });
+
+    return objToExtend;
   };
 
   // Like extend, but doesn't ever overwrite a key that already
   // exists in obj
   _.defaults = function(obj) {
+    // Take first argument as object to extend
+    let objToExtend = arguments[0];
+    // Iterate over each object
+    _.each(arguments, obj => {
+    // Iterate over each property in the object
+      for (let key in obj) {
+      // If the property doesn't exist on the output object, making sure to check for keys that could be coerced into being falsey values
+        if (typeof objToExtend[key] === 'undefined') {
+        // Add it to the output object
+          objToExtend[key] = obj[key];
+        }
+      }
+    });
+    // Return output object
+    return objToExtend;
   };
 
 
@@ -262,6 +326,26 @@
   // already computed the result for the given argument and return that value
   // instead if possible.
   _.memoize = function(func) {
+    // Create binding for argument storing object
+    let argumentStore = {};
+
+    //need to figure out how to distinguish between an array and list of numbers for the arguments
+
+    // return a function that
+    return function () {
+    // Checks if object contains the arguments
+      if (argumentStore[Array.from(arguments).slice()]) {
+      // If the arguments are found, return the matching results
+        return argumentStore[arguments];
+      } else {
+      // If the arguments are not found
+      //calculate the result and store it in the argument storing object
+        let result = func.apply(this, arguments);
+        argumentStore[Array.from(arguments).slice()] = result;
+        return result;
+      }
+    };
+
   };
 
   // Delays a function for the given number of milliseconds, and then calls
